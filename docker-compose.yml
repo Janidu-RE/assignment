@@ -22,5 +22,35 @@ services:
     depends_on:
       - db
 
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/deskline
+      - PORT=3000
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - API_URL=http://api:3000
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    depends_on:
+      - api
+
 volumes:
   pgdata:
