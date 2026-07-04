@@ -25,7 +25,7 @@ describe('GET /tickets', () => {
 
     expect(res.statusCode).toBe(200);
     const tickets = res.json();
-    expect(tickets).toHaveLength(3);
+    expect(tickets).toHaveLength(4);
 
     const printer = tickets.find((t: any) => t.subject === 'Printer on fire');
     expect(printer).toMatchObject({
@@ -34,13 +34,84 @@ describe('GET /tickets', () => {
       assigneeName: 'Ada Fixture',
       commentCount: 2,
       slaHours: 4,
+      slaStatus: 'ok',
     });
     expect(printer.createdAt).toBeTypeOf('string');
+
+    const slow = tickets.find((t: any) => t.subject === 'Slow reports page');
+    expect(slow).toMatchObject({
+      status: 'in_progress',
+      priority: 'medium',
+      assigneeName: 'Grace Fixture',
+      slaHours: 24,
+      slaStatus: 'breached',
+    });
 
     const unassigned = tickets.find((t: any) => t.subject === 'Unassigned question');
     expect(unassigned.assigneeId).toBeNull();
     expect(unassigned.assigneeName).toBeNull();
     expect(unassigned.commentCount).toBe(0);
+    expect(unassigned.slaStatus).toBe('ok');
+
+    const closed = tickets.find((t: any) => t.subject === 'Closed legacy import');
+    expect(closed.slaStatus).toBeNull();
+  });
+
+  it('filters by status only', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?status=in_progress' });
+    expect(res.statusCode).toBe(200);
+    const tickets = res.json();
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0].subject).toBe('Slow reports page');
+  });
+
+  it('filters by assigneeId only', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?assigneeId=1' });
+    expect(res.statusCode).toBe(200);
+    const tickets = res.json();
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0].subject).toBe('Printer on fire');
+  });
+
+  it('filters by unassigned (assigneeId=null)', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?assigneeId=null' });
+    expect(res.statusCode).toBe(200);
+    const tickets = res.json();
+    expect(tickets).toHaveLength(2);
+    const subjects = tickets.map((t: any) => t.subject);
+    expect(subjects).toContain('Unassigned question');
+    expect(subjects).toContain('Closed legacy import');
+  });
+
+  it('combines status and assignee filters', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?status=open&assigneeId=1' });
+    expect(res.statusCode).toBe(200);
+    const tickets = res.json();
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0].subject).toBe('Printer on fire');
+  });
+
+  it('filters by assigneeName only', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?assigneeName=Ada+Fixture' });
+    expect(res.statusCode).toBe(200);
+    const tickets = res.json();
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0].subject).toBe('Printer on fire');
+  });
+
+  it('combines status and assigneeName filters', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?status=open&assigneeName=Ada+Fixture' });
+    expect(res.statusCode).toBe(200);
+    const tickets = res.json();
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0].subject).toBe('Printer on fire');
+  });
+
+  it('returns empty array when no tickets match combined filter', async () => {
+    const res = await app.inject({ method: 'GET', url: '/tickets?status=resolved&assigneeId=1' });
+    expect(res.statusCode).toBe(200);
+    const tickets = res.json();
+    expect(tickets).toHaveLength(0);
   });
 });
 
@@ -124,5 +195,16 @@ describe('PATCH /tickets/:id/status', () => {
     });
 
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('GET /users', () => {
+  it('returns all users ordered by name', async () => {
+    const res = await app.inject({ method: 'GET', url: '/users' });
+    expect(res.statusCode).toBe(200);
+    const users = res.json();
+    expect(users).toHaveLength(2);
+    expect(users[0].name).toBe('Ada Fixture');
+    expect(users[1].name).toBe('Grace Fixture');
   });
 });

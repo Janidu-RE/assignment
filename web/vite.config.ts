@@ -8,6 +8,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/tickets': process.env.API_URL || 'http://127.0.0.1:3000',
+      '/users': process.env.API_URL || 'http://127.0.0.1:3000',
     },
   },
 });

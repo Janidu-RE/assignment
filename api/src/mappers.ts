@@ -33,6 +33,7 @@ export interface TicketDto {
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;
+  slaStatus: 'ok' | 'breached' | null;
 }
 
 export interface CommentDto {
@@ -49,6 +50,14 @@ export function toTicketDto(
   assigneeName: string | null,
   commentCount: number
 ): TicketDto {
+  let slaStatus: 'ok' | 'breached' | null = null;
+  if (!(row.status === 'closed' && row.resolved_at === null)) {
+    const created = new Date(row.created_at);
+    const resolved = row.resolved_at ? new Date(row.resolved_at) : new Date();
+    const diffHours = (resolved.getTime() - created.getTime()) / (1000 * 60 * 60);
+    slaStatus = diffHours > row.sla_hours ? 'breached' : 'ok';
+  }
+
   return {
     id: row.id,
     subject: row.subject,
@@ -62,6 +71,7 @@ export function toTicketDto(
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     resolvedAt: row.resolved_at ? row.resolved_at.toISOString() : null,
+    slaStatus,
   };
 }
 

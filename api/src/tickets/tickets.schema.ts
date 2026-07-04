@@ -15,3 +15,16 @@ export const createTicketSchema = z.object({
 export const updateStatusSchema = z.object({
   status: z.enum(['open', 'in_progress', 'resolved', 'closed']),
 });
+
+export const listTicketsQuerySchema = z.object({
+  status: z.enum(['open', 'in_progress', 'resolved', 'closed']).optional(),
+  assigneeId: z.preprocess(
+    (val) => {
+      if (val === 'null') return null;
+      if (val === '') return undefined;
+      return val;
+    },
+    z.coerce.number().int().positive().nullable()
+  ).optional(),
+  assigneeName: z.string().optional(),
+});

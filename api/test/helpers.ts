@@ -36,10 +36,11 @@ export async function resetDatabase() {
   `);
 
   await pool.query(`
-    insert into tickets (subject, description, status, priority, assignee_id, sla_hours, created_at, updated_at) values
-      ('Printer on fire', 'The office printer is quite literally on fire.', 'open', 'urgent', 1, 4, now() - interval '2 hours', now() - interval '2 hours'),
-      ('Slow reports page', 'Reports page takes ages to load on Mondays.', 'in_progress', 'medium', 2, 24, now() - interval '2 days', now() - interval '1 day'),
-      ('Unassigned question', 'How do I export my data?', 'open', 'low', null, 8, now() - interval '1 hour', now() - interval '1 hour')
+    insert into tickets (subject, description, status, priority, assignee_id, sla_hours, created_at, updated_at, resolved_at) values
+      ('Printer on fire', 'The office printer is quite literally on fire.', 'open', 'urgent', 1, 4, now() - interval '2 hours', now() - interval '2 hours', null),
+      ('Slow reports page', 'Reports page takes ages to load on Mondays.', 'in_progress', 'medium', 2, 24, now() - interval '2 days', now() - interval '1 day', null),
+      ('Unassigned question', 'How do I export my data?', 'open', 'low', null, 8, now() - interval '1 hour', now() - interval '1 hour', null),
+      ('Closed legacy import', 'Import failed on legacy details.', 'closed', 'medium', null, 8, now() - interval '25 days', now() - interval '22 days', null)
   `);
 
   await pool.query(`

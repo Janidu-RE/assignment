@@ -1,3 +1,9 @@
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export interface Ticket {
   id: number;
   subject: string;
@@ -11,6 +17,7 @@ export interface Ticket {
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;
+  slaStatus: 'ok' | 'breached' | null;
 }
 
 export interface Comment {

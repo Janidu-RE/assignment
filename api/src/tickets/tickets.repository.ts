@@ -3,21 +3,57 @@ import { toTicketDto, type TicketDto, type TicketRow } from '../mappers';
 import * as usersRepository from '../users/users.repository';
 import * as commentsRepository from '../comments/comments.repository';
 
-export async function listTickets(): Promise<TicketDto[]> {
-  const { rows } = await pool.query<TicketRow>(
-    'select * from tickets order by created_at desc'
+export interface ListTicketsFilters {
+  status?: string;
+  assigneeId?: number | null;
+  assigneeName?: string;
+}
+
+export async function listTickets(filters: ListTicketsFilters = {}): Promise<TicketDto[]> {
+  const selectQuery = `
+    select t.*, u.name as assignee_name,
+           (select count(*) from comments c where c.ticket_id = t.id) as comment_count
+      from tickets t
+      left join users u on u.id = t.assignee_id
+  `;
+
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (filters.status) {
+    params.push(filters.status);
+    conditions.push(`t.status = $${params.length}`);
+  }
+
+  if (filters.assigneeId !== undefined) {
+    if (filters.assigneeId === null) {
+      conditions.push('t.assignee_id is null');
+    } else {
+      params.push(filters.assigneeId);
+      conditions.push(`t.assignee_id = $${params.length}`);
+    }
+  }
+
+  if (filters.assigneeName) {
+    params.push(filters.assigneeName);
+    conditions.push(`u.name = $${params.length}`);
+  }
+
+  let queryText = selectQuery;
+  if (conditions.length > 0) {
+    queryText += ' where ' + conditions.join(' and ');
+  }
+
+  queryText += ' order by t.created_at desc';
+
+  const { rows } = await pool.query<TicketRow & { assignee_name: string | null; comment_count: string | number }>(
+    queryText,
+    params
   );
 
-  const result: TicketDto[] = [];
-  for (const row of rows) {
-    // look up assignee
-    const assigneeName = row.assignee_id
-      ? await usersRepository.findNameById(row.assignee_id)
-      : null;
-    const commentCount = await commentsRepository.countForTicket(row.id);
-    result.push(toTicketDto(row, assigneeName, commentCount));
-  }
-  return result;
+  return rows.map((row) =>
+    toTicketDto(row, row.assignee_name, Number(row.comment_count))
+  );
 }
 
 export async function getTicketById(id: number): Promise<TicketDto | null> {
